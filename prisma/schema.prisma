@@ -1,0 +1,126 @@
+// Concepts:
+// foreign key stores the ID of a related record and establishes the relationship between two tables
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// enum type is a list of valid entries
+enum OrderStatus {
+  fulfilled
+  shipped
+  awaiting_shipment
+}
+
+enum PhoneModel {
+  iphonex
+  iphone11
+  iphone12
+  iphone13
+  iphone14
+  iphone15
+}
+
+enum CaseMaterial {
+  silicone
+  polycarbonate
+}
+
+enum CaseFinish {
+  smooth
+  textured
+}
+
+enum CaseColor {
+  black
+  blue
+  rose
+}
+
+// data models (tables)
+model Configuration {
+  // primary key (each record has a unique id)
+  id              String        @id @default(cuid())
+  width           Int
+  height          Int
+  imageUrl        String
+  // optional field (won't be initialized in step 1, only until step 2)
+  croppedImageUrl String?
+  // only the values from the enum types are allowed in these fields
+  model           PhoneModel?
+  material        CaseMaterial?
+  finish          CaseFinish?
+  color           CaseColor?
+  // one-to-many relationship: one Configuration can have multiple Orders
+  Order           Order[]
+}
+
+model User {
+  // primary key (each record has a unique id)
+  id    String  @id @default(cuid())
+  email String
+  // one-to-many relationship: one User can have multiple Orders
+  Order Order[]
+
+  // automatically store when a record was created and last updated
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ShippingAddress {
+  // primary key (each record has a unique id)
+  id          String  @id @default(cuid())
+  name        String
+  street      String
+  city        String
+  postalCode  String
+  country     String
+  state       String?
+  phoneNumber String?
+  // one-to-many relationship: one ShippingAddress can have multiple Orders
+  orders      Order[]
+}
+
+model BillingAddress {
+  // primary key (each record has a unique id)
+  id          String  @id @default(cuid())
+  name        String
+  street      String
+  city        String
+  postalCode  String
+  country     String
+  state       String?
+  phoneNumber String?
+  // one-to-many relationship: one BillingAddress can have multiple Orders
+  orders      Order[]
+}
+
+model Order {
+  // primary key (each record has a unique id)
+  id                String      @id @default(cuid())
+  amount            Float
+  isPaid            Boolean     @default(false)
+  // the default value for order 'status' is "awaiting_shipment"
+  status            OrderStatus @default(awaiting_shipment)
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  // fk stores the ID of the related 'Configuration' record
+  configurationId   String
+  // fk stores the ID of the related 'User' record
+  userId            String
+  // fk stores the ID of the related 'ShippingAddress' record
+  shippingAddressId String?
+  // fk stores the ID of the related 'BillingAddress' record
+  billingAddressId  String?
+
+  // many-to-one relationships: each Order is associated with one Configuration, one User, and optionally one ShippingAddress and one BillingAddress
+  configuration   Configuration    @relation(fields: [configurationId], references: [id])
+  User            User             @relation(fields: [userId], references: [id])
+  shippingAddress ShippingAddress? @relation(fields: [shippingAddressId], references: [id])
+  billingAddress  BillingAddress?  @relation(fields: [billingAddressId], references: [id])
+}
